@@ -47,6 +47,7 @@ import { Panel } from "../ai-elements/panel";
 import { ActionNode } from "./nodes/action-node";
 import { AddNode } from "./nodes/add-node";
 import { TriggerNode } from "./nodes/trigger-node";
+import { WorkflowListNode } from "./nodes/workflow-list-node";
 import {
   type ContextMenuState,
   useContextMenuHandlers,
@@ -223,6 +224,7 @@ export function WorkflowCanvas() {
       trigger: TriggerNode,
       action: ActionNode,
       add: AddNode,
+      workflow: WorkflowListNode,
     }),
     []
   );

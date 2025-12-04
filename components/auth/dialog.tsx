@@ -23,6 +23,9 @@ import {
 
 type AuthDialogProps = {
   children?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  defaultMode?: "signin" | "signup";
 };
 
 const VercelIcon = ({ className = "mr-2 h-3 w-3" }: { className?: string }) => (
@@ -475,13 +478,18 @@ const EmailOnlyDialog = ({
   onToggleMode,
 }: EmailOnlyDialogProps) => (
   <Dialog onOpenChange={onOpenChange} open={open}>
-    <DialogTrigger asChild>
-      {children || (
+    {children && (
+      <DialogTrigger asChild className={open ? "hidden" : ""}>
+        {children}
+      </DialogTrigger>
+    )}
+    {!children && (
+      <DialogTrigger asChild>
         <Button size="sm" variant="default">
           Sign In
         </Button>
-      )}
-    </DialogTrigger>
+      </DialogTrigger>
+    )}
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
@@ -548,13 +556,18 @@ const MultiProviderDialog = ({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogTrigger asChild>
-        {children || (
+      {children && (
+        <DialogTrigger asChild className={open ? "hidden" : ""}>
+          {children}
+        </DialogTrigger>
+      )}
+      {!children && (
+        <DialogTrigger asChild>
           <Button size="sm" variant="default">
             Sign In
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -610,9 +623,16 @@ const MultiProviderDialog = ({
   );
 };
 
-export const AuthDialog = ({ children }: AuthDialogProps) => {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+export const AuthDialog = ({
+  children,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  defaultMode = "signin",
+}: AuthDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
+  const [mode, setMode] = useState<"signin" | "signup">(defaultMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

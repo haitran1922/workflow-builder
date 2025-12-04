@@ -1,20 +1,25 @@
 "use client";
 
-import { useAtomValue, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AuthDialog } from "@/components/auth/dialog";
 import { api } from "@/lib/api-client";
-import { authClient, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import {
   currentWorkflowNameAtom,
   edgesAtom,
   hasSidebarBeenShownAtom,
-  isTransitioningFromHomepageAtom,
   nodesAtom,
   type WorkflowNode,
 } from "@/lib/workflow-store";
+
+const GRID_COLS = 3;
+const NODE_WIDTH = 300;
+const NODE_HEIGHT = 150;
+const NODE_GAP = 40;
 
 // Helper function to create a default trigger node
 function createDefaultTriggerNode() {
@@ -34,102 +39,148 @@ function createDefaultTriggerNode() {
 
 const Home = () => {
   const router = useRouter();
-  const { data: session } = useSession();
-  const nodes = useAtomValue(nodesAtom);
-  const edges = useAtomValue(edgesAtom);
+  const { data: session, isPending } = useSession();
   const setNodes = useSetAtom(nodesAtom);
   const setEdges = useSetAtom(edgesAtom);
   const setCurrentWorkflowName = useSetAtom(currentWorkflowNameAtom);
   const setHasSidebarBeenShown = useSetAtom(hasSidebarBeenShownAtom);
-  const setIsTransitioningFromHomepage = useSetAtom(
-    isTransitioningFromHomepageAtom
-  );
-  const hasCreatedWorkflowRef = useRef(false);
-  const currentWorkflowName = useAtomValue(currentWorkflowNameAtom);
+  const [workflows, setWorkflows] = useState<
+    Array<{ id: string; name: string; updatedAt: string }>
+  >([]);
+  const [, setIsLoadingWorkflows] = useState(false);
 
   // Reset sidebar animation state when on homepage
   useEffect(() => {
     setHasSidebarBeenShown(false);
   }, [setHasSidebarBeenShown]);
 
-  // Update page title when workflow name changes
-  useEffect(() => {
-    document.title = `${currentWorkflowName} - AI Workflow Builder`;
-  }, [currentWorkflowName]);
+  // Check if user is anonymous
+  const isAnonymous =
+    !session?.user ||
+    session.user.name === "Anonymous" ||
+    session.user.email?.startsWith("temp-");
 
-  // Helper to create anonymous session if needed
-  const ensureSession = useCallback(async () => {
-    if (!session) {
-      await authClient.signIn.anonymous();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+  // Load workflows when authenticated
+  useEffect(() => {
+    const loadWorkflows = async () => {
+      if (isPending || isAnonymous) {
+        return;
+      }
+
+      setIsLoadingWorkflows(true);
+      try {
+        const allWorkflows = await api.workflow.getAll();
+        // Filter out the auto-save workflow
+        const filtered = allWorkflows.filter((w) => w.name !== "__current__");
+        setWorkflows(filtered);
+      } catch (error) {
+        console.error("Failed to load workflows:", error);
+      } finally {
+        setIsLoadingWorkflows(false);
+      }
+    };
+
+    loadWorkflows();
+  }, [isPending, isAnonymous]);
+
+  // Display workflows as nodes on canvas
+  useEffect(() => {
+    if (isPending || isAnonymous) {
+      setNodes([]);
+      setEdges([]);
+      return;
     }
-  }, [session]);
 
-  // Handler to add the first node (replaces the "add" node)
-  const handleAddNode = useCallback(() => {
-    const newNode: WorkflowNode = createDefaultTriggerNode();
-    // Replace all nodes (removes the "add" node)
-    setNodes([newNode]);
-  }, [setNodes]);
+    const workflowNodes: WorkflowNode[] = [];
 
-  // Initialize with a temporary "add" node on mount
-  useEffect(() => {
-    const addNodePlaceholder: WorkflowNode = {
-      id: "add-node-placeholder",
-      type: "add",
+    // Add "Create New Workflow" node
+    const createNewNode: WorkflowNode = {
+      id: "create-new-workflow",
+      type: "workflow",
       position: { x: 0, y: 0 },
       data: {
         label: "",
-        type: "add",
-        onClick: handleAddNode,
+        type: "workflow",
+        isCreateNew: true,
+        onClick: async () => {
+          try {
+            const newNode = createDefaultTriggerNode();
+            const newWorkflow = await api.workflow.create({
+              name: "Untitled Workflow",
+              description: "",
+              nodes: [newNode],
+              edges: [],
+            });
+            router.push(`/workflows/${newWorkflow.id}`);
+          } catch (error) {
+            console.error("Failed to create workflow:", error);
+            toast.error("Failed to create workflow");
+          }
+        },
       },
       draggable: false,
       selectable: false,
     };
-    setNodes([addNodePlaceholder]);
+    workflowNodes.push(createNewNode);
+
+    // Add workflow nodes in a grid layout
+    workflows.forEach((workflow, index) => {
+      const row = Math.floor((index + 1) / GRID_COLS);
+      const col = (index + 1) % GRID_COLS;
+      const x = (col + 1) * (NODE_WIDTH + NODE_GAP);
+      const y = row * (NODE_HEIGHT + NODE_GAP);
+
+      const workflowNode: WorkflowNode = {
+        id: `workflow-${workflow.id}`,
+        type: "workflow",
+        position: { x, y },
+        data: {
+          label: workflow.name,
+          type: "workflow",
+          workflowId: workflow.id,
+          workflowName: workflow.name,
+          updatedAt: workflow.updatedAt,
+        },
+        draggable: false,
+        selectable: false,
+      };
+      workflowNodes.push(workflowNode);
+    });
+
+    setNodes(workflowNodes);
     setEdges([]);
-    setCurrentWorkflowName("New Workflow");
-    hasCreatedWorkflowRef.current = false;
-  }, [setNodes, setEdges, setCurrentWorkflowName, handleAddNode]);
+    setCurrentWorkflowName("My Workflows");
+  }, [
+    workflows,
+    isPending,
+    isAnonymous,
+    setNodes,
+    setEdges,
+    setCurrentWorkflowName,
+    router,
+  ]);
 
-  // Create workflow when first real node is added
-  useEffect(() => {
-    const createWorkflowAndRedirect = async () => {
-      // Filter out the placeholder "add" node
-      const realNodes = nodes.filter((node) => node.type !== "add");
+  // Show auth dialog for unauthenticated users
+  if (isPending) {
+    return null;
+  }
 
-      // Only create when we have at least one real node and haven't created a workflow yet
-      if (realNodes.length === 0 || hasCreatedWorkflowRef.current) {
-        return;
-      }
-      hasCreatedWorkflowRef.current = true;
-
-      try {
-        await ensureSession();
-
-        // Create workflow with all real nodes
-        const newWorkflow = await api.workflow.create({
-          name: "Untitled Workflow",
-          description: "",
-          nodes: realNodes,
-          edges,
-        });
-
-        // Set flags to indicate we're coming from homepage (for sidebar animation)
-        sessionStorage.setItem("animate-sidebar", "true");
-        setIsTransitioningFromHomepage(true);
-
-        // Redirect to the workflow page
-        console.log("[Homepage] Navigating to workflow page");
-        router.replace(`/workflows/${newWorkflow.id}`);
-      } catch (error) {
-        console.error("Failed to create workflow:", error);
-        toast.error("Failed to create workflow");
-      }
-    };
-
-    createWorkflowAndRedirect();
-  }, [nodes, edges, router, ensureSession, setIsTransitioningFromHomepage]);
+  if (isAnonymous) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <div className="w-full max-w-md px-4">
+          <AuthDialog defaultMode="signup" open={true}>
+            <div className="text-center">
+              <h1 className="mb-4 font-bold text-3xl">Welcome</h1>
+              <p className="mb-6 text-muted-foreground">
+                Sign up to start building your workflows
+              </p>
+            </div>
+          </AuthDialog>
+        </div>
+      </div>
+    );
+  }
 
   // Canvas and toolbar are rendered by PersistentCanvas in the layout
   return null;

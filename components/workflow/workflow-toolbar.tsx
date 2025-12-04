@@ -99,8 +99,6 @@ import {
   getIntegrationLabels,
 } from "@/plugins";
 import { Panel } from "../ai-elements/panel";
-import { DeployButton } from "../deploy-button";
-import { GitHubStarsButton } from "../github-stars-button";
 import { IntegrationFormDialog } from "../settings/integration-form-dialog";
 import { IntegrationIcon } from "../ui/integration-icon";
 import { WorkflowIcon } from "../ui/workflow-icon";
@@ -1396,7 +1394,7 @@ function VisibilityButton({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild suppressHydrationWarning>
         <Button
           className="border hover:bg-black/5 dark:hover:bg-white/5"
           disabled={!state.currentWorkflowId || state.isGenerating}
@@ -1502,7 +1500,10 @@ function WorkflowMenuComponent({
     <div className="flex flex-col gap-1">
       <div className="flex h-9 max-w-[160px] items-center overflow-hidden rounded-md border bg-secondary text-secondary-foreground sm:max-w-none">
         <DropdownMenu onOpenChange={(open) => open && actions.loadWorkflows()}>
-          <DropdownMenuTrigger className="flex h-full cursor-pointer items-center gap-2 px-3 font-medium text-sm transition-all hover:bg-black/5 dark:hover:bg-white/5">
+          <DropdownMenuTrigger
+            className="flex h-full cursor-pointer items-center gap-2 px-3 font-medium text-sm transition-all hover:bg-black/5 dark:hover:bg-white/5"
+            suppressHydrationWarning
+          >
             <WorkflowIcon className="size-4 shrink-0" />
             <p className="truncate font-medium text-sm">
               {workflowId ? (
@@ -2077,12 +2078,6 @@ export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
             workflowId={workflowId}
           />
           <div className="flex items-center gap-2">
-            {!workflowId && (
-              <>
-                <GitHubStarsButton />
-                <DeployButton />
-              </>
-            )}
             {workflowId && !state.isOwner && (
               <DuplicateButton
                 isDuplicating={state.isDuplicating}
