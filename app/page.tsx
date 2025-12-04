@@ -48,6 +48,7 @@ const Home = () => {
     Array<{ id: string; name: string; updatedAt: string }>
   >([]);
   const [, setIsLoadingWorkflows] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(true);
 
   // Reset sidebar animation state when on homepage
   useEffect(() => {
@@ -169,7 +170,11 @@ const Home = () => {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
         <div className="w-full max-w-md px-4">
-          <AuthDialog defaultMode="signup" open={true}>
+          <AuthDialog
+            defaultMode="signup"
+            onOpenChange={setAuthDialogOpen}
+            open={authDialogOpen}
+          >
             <div className="text-center">
               <h1 className="mb-4 font-bold text-3xl">Welcome</h1>
               <p className="mb-6 text-muted-foreground">

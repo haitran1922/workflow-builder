@@ -27,3 +27,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed hydration mismatch warnings by adding suppressHydrationWarning to DropdownMenuTrigger components
 - Fixed Radix UI random ID generation causing server/client mismatch warnings
+- Fixed AuthDialog not closing after successful authentication by properly implementing controlled component state with both open and onOpenChange props
