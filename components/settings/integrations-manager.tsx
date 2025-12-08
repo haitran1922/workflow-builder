@@ -42,8 +42,11 @@ export function IntegrationsManager({
 }: IntegrationsManagerProps) {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingIntegration, setEditingIntegration] =
-    useState<Integration | null>(null);
+  const [editingIntegration, setEditingIntegration] = useState<
+    | Integration
+    | (Integration & { config: Record<string, string | undefined> })
+    | null
+  >(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -132,6 +135,17 @@ export function IntegrationsManager({
     setEditingIntegration(null);
   };
 
+  const handleEditIntegration = async (integration: Integration) => {
+    try {
+      // Fetch full integration data including config for editing
+      const fullIntegration = await api.integration.get(integration.id);
+      setEditingIntegration(fullIntegration);
+    } catch (error) {
+      console.error("Failed to load integration for editing:", error);
+      toast.error("Failed to load integration details");
+    }
+  };
+
   const handleDialogSuccess = async () => {
     await loadIntegrations();
     onIntegrationChange?.();
@@ -212,7 +226,7 @@ export function IntegrationsManager({
                         </Button>
                         <Button
                           className="size-7"
-                          onClick={() => setEditingIntegration(integration)}
+                          onClick={() => handleEditIntegration(integration)}
                           size="icon"
                           variant="outline"
                         >

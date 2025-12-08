@@ -17,6 +17,7 @@
 import "./ai-gateway";
 import "./blob";
 import "./fal";
+import "./figma";
 import "./firecrawl";
 import "./github";
 import "./linear";

@@ -24,6 +24,7 @@ import {
   getIntegrationLabels,
   getSortedIntegrationTypes,
 } from "@/plugins";
+import { FigmaOAuthDialog } from "./figma-oauth-dialog";
 
 type IntegrationFormDialogProps = {
   open: boolean;
@@ -37,7 +38,7 @@ type IntegrationFormDialogProps = {
 type IntegrationFormData = {
   name: string;
   type: IntegrationType | null;
-  config: Record<string, string>;
+  config: Record<string, string | undefined>;
 };
 
 // System integrations that don't have plugins
@@ -56,6 +57,7 @@ const getIntegrationTypes = (): IntegrationType[] => [
 const getLabel = (type: IntegrationType): string =>
   getIntegrationLabels()[type] || SYSTEM_INTEGRATION_LABELS[type] || type;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Legacy component - refactor needed separately
 export function IntegrationFormDialog({
   open,
   onClose,
@@ -76,12 +78,19 @@ export function IntegrationFormDialog({
     preselectedType || mode === "edit" ? "configure" : "select"
   );
 
+  const [showFigmaOAuth, setShowFigmaOAuth] = useState(false);
+  const [createdIntegrationId, setCreatedIntegrationId] = useState<
+    string | null
+  >(null);
+
   useEffect(() => {
     if (integration) {
       setFormData({
         name: integration.name,
         type: integration.type,
-        config: {},
+        config:
+          (integration as { config?: Record<string, string | undefined> })
+            .config || {},
       });
       setStep("configure");
     } else {
@@ -131,15 +140,22 @@ export function IntegrationFormDialog({
         });
         toast.success("Integration updated");
         onSuccess?.(integration.id);
+        onClose();
       } else {
         const newIntegration = await api.integration.create({
           name: integrationName,
           type: formData.type,
           config: formData.config,
         });
-        onSuccess?.(newIntegration.id);
+
+        if (formData.type === "figma" && formData.config.clientId) {
+          setCreatedIntegrationId(newIntegration.id);
+          setShowFigmaOAuth(true);
+        } else {
+          onSuccess?.(newIntegration.id);
+          onClose();
+        }
       }
-      onClose();
     } catch (error) {
       console.error("Failed to save integration:", error);
       toast.error("Failed to save integration");
@@ -238,88 +254,108 @@ export function IntegrationFormDialog({
   };
 
   return (
-    <Dialog onOpenChange={(isOpen) => !isOpen && onClose()} open={open}>
-      <DialogContent
-        className={cn(step === "select" ? "max-w-2xl" : "max-w-md")}
-      >
-        <DialogHeader>
-          <DialogTitle>{getDialogTitle()}</DialogTitle>
-          <DialogDescription>{getDialogDescription()}</DialogDescription>
-        </DialogHeader>
-
-        {step === "select" ? (
-          <div className="grid grid-cols-3 gap-2 py-2">
-            {integrationTypes.map((type) => (
-              <button
-                className="flex flex-col items-center gap-2 rounded-lg border p-4 text-sm transition-colors hover:bg-muted/50"
-                key={type}
-                onClick={() => handleSelectType(type)}
-                type="button"
-              >
-                <IntegrationIcon
-                  className="size-8"
-                  integration={type === "ai-gateway" ? "vercel" : type}
-                />
-                <span className="text-center font-medium">
-                  {getLabel(type)}
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {renderConfigFields()}
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Name (Optional)</Label>
-              <Input
-                id="name"
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                placeholder={
-                  formData.type
-                    ? `${getLabel(formData.type)} Integration`
-                    : "Integration"
-                }
-                value={formData.name}
-              />
-            </div>
-          </div>
-        )}
-
-        <DialogFooter
-          className={cn(
-            step === "select" ? "sm:justify-start" : "sm:justify-between"
-          )}
+    <>
+      <Dialog onOpenChange={(isOpen) => !isOpen && onClose()} open={open}>
+        <DialogContent
+          className={cn(step === "select" ? "max-w-2xl" : "max-w-md")}
         >
-          {step === "configure" && mode === "create" && !preselectedType && (
-            <Button disabled={saving} onClick={handleBack} variant="ghost">
-              <ArrowLeft className="mr-2 size-4" />
-              Back
-            </Button>
-          )}
+          <DialogHeader>
+            <DialogTitle>{getDialogTitle()}</DialogTitle>
+            <DialogDescription>{getDialogDescription()}</DialogDescription>
+          </DialogHeader>
+
           {step === "select" ? (
-            <Button onClick={() => onClose()} variant="outline">
-              Cancel
-            </Button>
+            <div className="grid grid-cols-3 gap-2 py-2">
+              {integrationTypes.map((type) => (
+                <button
+                  className="flex flex-col items-center gap-2 rounded-lg border p-4 text-sm transition-colors hover:bg-muted/50"
+                  key={type}
+                  onClick={() => handleSelectType(type)}
+                  type="button"
+                >
+                  <IntegrationIcon
+                    className="size-8"
+                    integration={type === "ai-gateway" ? "vercel" : type}
+                  />
+                  <span className="text-center font-medium">
+                    {getLabel(type)}
+                  </span>
+                </button>
+              ))}
+            </div>
           ) : (
-            <div className="flex gap-2">
-              <Button
-                disabled={saving}
-                onClick={() => onClose()}
-                variant="outline"
-              >
+            <div className="space-y-4">
+              {renderConfigFields()}
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Name (Optional)</Label>
+                <Input
+                  id="name"
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder={
+                    formData.type
+                      ? `${getLabel(formData.type)} Integration`
+                      : "Integration"
+                  }
+                  value={formData.name}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter
+            className={cn(
+              step === "select" ? "sm:justify-start" : "sm:justify-between"
+            )}
+          >
+            {step === "configure" && mode === "create" && !preselectedType && (
+              <Button disabled={saving} onClick={handleBack} variant="ghost">
+                <ArrowLeft className="mr-2 size-4" />
+                Back
+              </Button>
+            )}
+            {step === "select" ? (
+              <Button onClick={() => onClose()} variant="outline">
                 Cancel
               </Button>
-              <Button disabled={saving} onClick={handleSave}>
-                {saving ? <Spinner className="mr-2 size-4" /> : null}
-                {mode === "edit" ? "Update" : "Create"}
-              </Button>
-            </div>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  disabled={saving}
+                  onClick={() => onClose()}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button disabled={saving} onClick={handleSave}>
+                  {saving ? <Spinner className="mr-2 size-4" /> : null}
+                  {mode === "edit" ? "Update" : "Create"}
+                </Button>
+              </div>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {showFigmaOAuth && createdIntegrationId && (
+        <FigmaOAuthDialog
+          clientId={formData.config.clientId || ""}
+          integrationId={createdIntegrationId}
+          onClose={() => {
+            setShowFigmaOAuth(false);
+            setCreatedIntegrationId(null);
+            onClose();
+          }}
+          onSuccess={() => {
+            if (createdIntegrationId) {
+              onSuccess?.(createdIntegrationId);
+            }
+          }}
+          open={showFigmaOAuth}
+        />
+      )}
+    </>
   );
 }
