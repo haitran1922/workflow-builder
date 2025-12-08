@@ -6,6 +6,8 @@ import {
   sessions,
   users,
   verifications,
+  workflowBaseData,
+  workflowBaseDataRelations,
   workflowExecutionLogs,
   workflowExecutions,
   workflowExecutionsRelations,
@@ -22,6 +24,8 @@ const schema = {
   workflowExecutions,
   workflowExecutionLogs,
   workflowExecutionsRelations,
+  workflowBaseData,
+  workflowBaseDataRelations,
   apiKeys,
 };
 

@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.3] - 2025-01-09
+
+### Added
+- **Figma Detect Change Action**: New workflow action to detect new activity log items by comparing current logs with baseline data
+  - Automatically finds and compares with the most recent "Get Activity Logs" node output
+  - Returns new items that don't exist in the selected base data
+  - Provides count and array of new log entries as output
+- **Base Data Management System**: Complete infrastructure for storing and managing baseline activity log data
+  - New `workflowBaseData` database table with JSONB storage for activity log arrays
+  - Per-workflow base data storage with cascade deletion
+  - Full CRUD API endpoints for base data operations
+- **Base Data Selector UI Component**: Custom field type for selecting and managing base data
+  - Radio button selection for choosing base data
+  - Inline display of all log entries with full details (ID, Name, Timestamp, Action Type, Actor)
+  - Create new base data from "Get Activity Logs" node outputs
+  - Delete individual log entries from base data
+  - Delete entire base data entries with confirmation
+  - Simplified, direct UI without unnecessary clicks or nested structures
+- **API Client Extensions**: New base data methods in workflow API client
+  - `getAll()` - List all base data for a workflow
+  - `getById()` - Get specific base data with full details
+  - `create()` - Create new base data entry
+  - `update()` - Update base data (used for removing individual log entries)
+  - `delete()` - Delete base data entry
+- **Database Migration**: New migration `0004_sturdy_runaways` for workflow base data table
+
+### Changed
+- **Plugin Registry**: Added `base-data-selector` as a new custom field type for action configuration
+- **Action Config Renderer**: Integrated BaseDataSelectorField component for rendering base data selection UI
+- **README**: Updated to include "Detect Change" in Figma integration features list
+
+### Technical Details
+- **Database Schema**: Added `workflowBaseData` table with relations to workflows
+- **API Routes**: 
+  - `GET /api/workflows/[workflowId]/base-data` - List base data
+  - `POST /api/workflows/[workflowId]/base-data` - Create base data
+  - `GET /api/workflows/[workflowId]/base-data/[baseDataId]` - Get base data details
+  - `PATCH /api/workflows/[workflowId]/base-data/[baseDataId]` - Update base data
+  - `DELETE /api/workflows/[workflowId]/base-data/[baseDataId]` - Delete base data
+- **Step Function**: `detectChangeStep` in `plugins/figma/steps/detect-change.ts`
+  - Queries execution logs to find previous "Get Activity Logs" node output
+  - Compares current logs with base data using log IDs
+  - Returns new items not present in base data
+
 ## [0.0.2] - 2025-12-08
 
 ### Added

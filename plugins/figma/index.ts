@@ -165,6 +165,27 @@ const figmaPlugin: IntegrationPlugin = {
         },
       ],
     },
+    {
+      slug: "detect-change",
+      label: "Detect Change",
+      description:
+        "Compare current activity logs with base data to detect new items",
+      category: "Figma",
+      stepFunction: "detectChangeStep",
+      stepImportPath: "detect-change",
+      outputFields: [
+        { field: "newItems", description: "Array of new log items not in base data" },
+        { field: "count", description: "Number of new items detected" },
+      ],
+      configFields: [
+        {
+          key: "baseDataId",
+          label: "Base Data",
+          type: "base-data-selector",
+          required: true,
+        },
+      ],
+    },
   ],
 };
 

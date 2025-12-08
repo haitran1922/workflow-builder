@@ -18,6 +18,7 @@ import {
   type ActionConfigFieldBase,
   isFieldGroup,
 } from "@/plugins";
+import { BaseDataSelector } from "./base-data-selector";
 import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
 type FieldProps = {
@@ -114,6 +115,17 @@ function SchemaBuilderField(props: FieldProps) {
   );
 }
 
+function BaseDataSelectorField(props: FieldProps) {
+  return (
+    <BaseDataSelector
+      disabled={props.disabled}
+      field={props.field}
+      onChange={props.onChange}
+      value={props.value}
+    />
+  );
+}
+
 const FIELD_RENDERERS: Record<
   ActionConfigFieldBase["type"],
   React.ComponentType<FieldProps>
@@ -124,6 +136,7 @@ const FIELD_RENDERERS: Record<
   number: NumberInputField,
   select: SelectField,
   "schema-builder": SchemaBuilderField,
+  "base-data-selector": BaseDataSelectorField,
 };
 
 /**

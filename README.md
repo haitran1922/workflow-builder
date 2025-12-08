@@ -82,7 +82,7 @@ Visit [http://localhost:3000](http://localhost:3000) to get started.
 - **AI Gateway**: Generate Text, Generate Image
 - **Blob**: Put Blob, List Blobs
 - **fal.ai**: Generate Image, Generate Video, Upscale Image, Remove Background, Image to Image
-- **Figma**: Get Activity Logs
+- **Figma**: Get Activity Logs, Detect Change
 - **Firecrawl**: Scrape URL, Search Web
 - **GitHub**: Create Issue, List Issues, Get Issue, Update Issue
 - **Linear**: Create Ticket, Find Issues

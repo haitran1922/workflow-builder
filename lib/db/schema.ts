@@ -161,12 +161,37 @@ export const apiKeys = pgTable("api_keys", {
   lastUsedAt: timestamp("last_used_at"),
 });
 
+// Workflow base data table for storing baseline activity logs
+export const workflowBaseData = pgTable("workflow_base_data", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => generateId()),
+  workflowId: text("workflow_id")
+    .notNull()
+    .references(() => workflows.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // biome-ignore lint/suspicious/noExplicitAny: JSONB type - stores activity logs array
+  data: jsonb("data").notNull().$type<any[]>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Relations
 export const workflowExecutionsRelations = relations(
   workflowExecutions,
   ({ one }) => ({
     workflow: one(workflows, {
       fields: [workflowExecutions.workflowId],
+      references: [workflows.id],
+    }),
+  })
+);
+
+export const workflowBaseDataRelations = relations(
+  workflowBaseData,
+  ({ one }) => ({
+    workflow: one(workflows, {
+      fields: [workflowBaseData.workflowId],
       references: [workflows.id],
     }),
   })
@@ -184,3 +209,5 @@ export type WorkflowExecutionLog = typeof workflowExecutionLogs.$inferSelect;
 export type NewWorkflowExecutionLog = typeof workflowExecutionLogs.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+export type WorkflowBaseData = typeof workflowBaseData.$inferSelect;
+export type NewWorkflowBaseData = typeof workflowBaseData.$inferInsert;

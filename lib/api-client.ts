@@ -588,6 +588,66 @@ export const workflowApi = {
       }, AUTOSAVE_DELAY);
     };
   })(),
+
+  // Base data API
+  baseData: {
+    // List all base data for a workflow
+    getAll: (workflowId: string) =>
+      apiCall<
+        Array<{
+          id: string;
+          name: string;
+          createdAt: string;
+        }>
+      >(`/api/workflows/${workflowId}/base-data`),
+
+    // Get specific base data by ID
+    getById: (workflowId: string, baseDataId: string) =>
+      apiCall<{
+        id: string;
+        name: string;
+        data: unknown[];
+        createdAt: string;
+        updatedAt: string;
+      }>(`/api/workflows/${workflowId}/base-data/${baseDataId}`),
+
+    // Create new base data
+    create: (workflowId: string, data: { name: string; data: unknown[] }) =>
+      apiCall<{
+        id: string;
+        name: string;
+        createdAt: string;
+      }>(`/api/workflows/${workflowId}/base-data`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    // Update base data
+    update: (
+      workflowId: string,
+      baseDataId: string,
+      data: { data: unknown[] }
+    ) =>
+      apiCall<{
+        id: string;
+        name: string;
+        data: unknown[];
+        createdAt: string;
+        updatedAt: string;
+      }>(`/api/workflows/${workflowId}/base-data/${baseDataId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    // Delete base data
+    delete: (workflowId: string, baseDataId: string) =>
+      apiCall<{ success: boolean }>(
+        `/api/workflows/${workflowId}/base-data/${baseDataId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+  },
 };
 
 // Export all APIs as a single object
