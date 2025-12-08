@@ -476,13 +476,18 @@ const EmailOnlyDialog = ({
   onToggleMode,
 }: EmailOnlyDialogProps) => (
   <Dialog onOpenChange={onOpenChange} open={open}>
-    <DialogTrigger asChild>
-      {children || (
+    {children && (
+      <DialogTrigger asChild className={open ? "hidden" : ""}>
+        {children}
+      </DialogTrigger>
+    )}
+    {!children && (
+      <DialogTrigger asChild>
         <Button size="sm" variant="default">
           Sign In
         </Button>
-      )}
-    </DialogTrigger>
+      </DialogTrigger>
+    )}
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
@@ -549,13 +554,18 @@ const MultiProviderDialog = ({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogTrigger asChild>
-        {children || (
+      {children && (
+        <DialogTrigger asChild className={open ? "hidden" : ""}>
+          {children}
+        </DialogTrigger>
+      )}
+      {!children && (
+        <DialogTrigger asChild>
           <Button size="sm" variant="default">
             Sign In
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
