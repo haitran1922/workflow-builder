@@ -6,10 +6,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AuthDialog } from "@/components/auth/dialog";
 import { Button } from "@/components/ui/button";
 import { NodeConfigPanel } from "@/components/workflow/node-config-panel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { api } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 import {
   integrationsAtom,
   integrationsLoadedAtom,
@@ -106,6 +108,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
   const { workflowId } = use(params);
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const { data: session, isPending: isSessionPending } = useSession();
   const [isGenerating, setIsGenerating] = useAtom(isGeneratingAtom);
   const [_isSaving, setIsSaving] = useAtom(isSavingAtom);
   const [nodes] = useAtom(nodesAtom);
@@ -656,6 +659,19 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       }
     };
   }, [selectedExecutionId, updateNodeData]);
+
+  // Block UI if not authenticated
+  if (isSessionPending) {
+    return null;
+  }
+
+  if (!session?.user) {
+    return (
+      <AuthDialog required>
+        <div style={{ display: "none" }} />
+      </AuthDialog>
+    );
+  }
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden">

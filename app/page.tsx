@@ -5,8 +5,9 @@ import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { AuthDialog } from "@/components/auth/dialog";
 import { api } from "@/lib/api-client";
-import { authClient, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import {
   currentWorkflowNameAtom,
   edgesAtom,
@@ -34,7 +35,7 @@ function createDefaultTriggerNode() {
 
 const Home = () => {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const nodes = useAtomValue(nodesAtom);
   const edges = useAtomValue(edgesAtom);
   const setNodes = useSetAtom(nodesAtom);
@@ -56,14 +57,6 @@ const Home = () => {
   useEffect(() => {
     document.title = `${currentWorkflowName} - AI Workflow Builder`;
   }, [currentWorkflowName]);
-
-  // Helper to create anonymous session if needed
-  const ensureSession = useCallback(async () => {
-    if (!session) {
-      await authClient.signIn.anonymous();
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }, [session]);
 
   // Handler to add the first node (replaces the "add" node)
   const handleAddNode = useCallback(() => {
@@ -95,6 +88,11 @@ const Home = () => {
   // Create workflow when first real node is added
   useEffect(() => {
     const createWorkflowAndRedirect = async () => {
+      // Require authentication before creating workflow
+      if (!session?.user) {
+        return;
+      }
+
       // Filter out the placeholder "add" node
       const realNodes = nodes.filter((node) => node.type !== "add");
 
@@ -105,8 +103,6 @@ const Home = () => {
       hasCreatedWorkflowRef.current = true;
 
       try {
-        await ensureSession();
-
         // Create workflow with all real nodes
         const newWorkflow = await api.workflow.create({
           name: "Untitled Workflow",
@@ -125,11 +121,25 @@ const Home = () => {
       } catch (error) {
         console.error("Failed to create workflow:", error);
         toast.error("Failed to create workflow");
+        hasCreatedWorkflowRef.current = false;
       }
     };
 
     createWorkflowAndRedirect();
-  }, [nodes, edges, router, ensureSession, setIsTransitioningFromHomepage]);
+  }, [nodes, edges, router, session, setIsTransitioningFromHomepage]);
+
+  // Block UI if not authenticated
+  if (isPending) {
+    return null;
+  }
+
+  if (!session?.user) {
+    return (
+      <AuthDialog required>
+        <div style={{ display: "none" }} />
+      </AuthDialog>
+    );
+  }
 
   // Canvas and toolbar are rendered by PersistentCanvas in the layout
   return null;

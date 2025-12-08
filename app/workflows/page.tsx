@@ -2,13 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { AuthDialog } from "@/components/auth/dialog";
 import { api } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 
 export default function WorkflowsPage() {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
 
   useEffect(() => {
     const redirectToWorkflow = async () => {
+      // Require authentication
+      if (!session?.user) {
+        return;
+      }
+
       try {
         const workflows = await api.workflow.getAll();
         // Filter out the auto-save workflow
@@ -31,8 +39,22 @@ export default function WorkflowsPage() {
       }
     };
 
-    redirectToWorkflow();
-  }, [router]);
+    if (!isPending) {
+      redirectToWorkflow();
+    }
+  }, [router, session, isPending]);
+
+  if (isPending) {
+    return null;
+  }
+
+  if (!session?.user) {
+    return (
+      <AuthDialog required>
+        <div style={{ display: "none" }} />
+      </AuthDialog>
+    );
+  }
 
   return null;
 }

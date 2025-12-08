@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,7 @@ import {
 
 type AuthDialogProps = {
   children?: ReactNode;
+  required?: boolean;
 };
 
 const VercelIcon = ({ className = "mr-2 h-3 w-3" }: { className?: string }) => (
@@ -610,8 +611,8 @@ const MultiProviderDialog = ({
   );
 };
 
-export const AuthDialog = ({ children }: AuthDialogProps) => {
-  const [open, setOpen] = useState(false);
+export const AuthDialog = ({ children, required = false }: AuthDialogProps) => {
+  const [open, setOpen] = useState(required);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -624,6 +625,21 @@ export const AuthDialog = ({ children }: AuthDialogProps) => {
 
   const enabledProviders = getEnabledAuthProviders();
   const singleProvider = getSingleProvider();
+
+  // Keep dialog open if required
+  useEffect(() => {
+    if (required) {
+      setOpen(true);
+    }
+  }, [required]);
+
+  // Prevent closing if required
+  const handleOpenChange = (newOpen: boolean) => {
+    if (required && !newOpen) {
+      return; // Prevent closing
+    }
+    setOpen(newOpen);
+  };
 
   const { handleSocialSignIn, handleEmailAuth, toggleMode } = useAuthHandlers({
     mode,
@@ -657,7 +673,7 @@ export const AuthDialog = ({ children }: AuthDialogProps) => {
         name={name}
         onEmailChange={setEmail}
         onNameChange={setName}
-        onOpenChange={setOpen}
+        onOpenChange={handleOpenChange}
         onPasswordChange={setPassword}
         onSubmit={handleEmailAuth}
         onToggleMode={toggleMode}
@@ -680,7 +696,7 @@ export const AuthDialog = ({ children }: AuthDialogProps) => {
       name={name}
       onEmailChange={setEmail}
       onNameChange={setName}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       onPasswordChange={setPassword}
       onSignIn={handleSocialSignIn}
       onSubmit={handleEmailAuth}
